@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.database import get_connection
+from app.audit import write_audit_log
 
 
 load_dotenv()
@@ -17,6 +18,12 @@ def verify_admin_token(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
     if credentials is None:
+        write_audit_log(
+            "ACCESS_DENIED",
+            None,
+            "/admin/users"
+    )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required"

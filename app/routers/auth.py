@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from app.database import get_connection
+from app.audit import write_audit_log
 
 
 router = APIRouter(
@@ -26,7 +27,7 @@ def login(request: LoginRequest):
                 SELECT id, username, password_hash, role, status
                 FROM users
                 WHERE username = %s
-                AND role = 'USER';
+                  AND role = 'USER';
                 """,
                 (request.username,)
             )
@@ -34,6 +35,12 @@ def login(request: LoginRequest):
             user = cursor.fetchone()
 
     if user is None:
+        write_audit_log(
+            "LOGIN_FAILED",
+            request.username,
+            "/auth/login"
+        )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
@@ -45,16 +52,34 @@ def login(request: LoginRequest):
     )
 
     if not password_match:
+        write_audit_log(
+            "LOGIN_FAILED",
+            request.username,
+            "/auth/login"
+        )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
 
     if user[4] != "ACTIVE":
+        write_audit_log(
+            "LOGIN_FAILED",
+            request.username,
+            "/auth/login"
+        )
+
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is inactive"
         )
+
+    write_audit_log(
+        "LOGIN_SUCCESS",
+        request.username,
+        "/auth/login"
+    )
 
     return {
         "message": "Login successful",

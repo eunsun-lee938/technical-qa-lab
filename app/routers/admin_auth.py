@@ -3,15 +3,15 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
-from dotenv import load_dotenv
 
 from app.database import get_connection
+from app.audit import write_audit_log
 
 
 load_dotenv()
-
 
 router = APIRouter(
     prefix="/admin/auth",
@@ -41,7 +41,14 @@ def admin_login(request: AdminLoginRequest):
 
             admin = cursor.fetchone()
 
+    # ADMIN 계정이 존재하지 않는 경우
     if admin is None:
+        write_audit_log(
+            "LOGIN_FAILED",
+            request.username,
+            "/admin/auth/login"
+        )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
@@ -52,13 +59,27 @@ def admin_login(request: AdminLoginRequest):
         admin[2].encode("utf-8")
     )
 
+    # 비밀번호 오류
     if not password_match:
+        write_audit_log(
+            "LOGIN_FAILED",
+            request.username,
+            "/admin/auth/login"
+        )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
 
+    # 비활성 ADMIN
     if admin[4] != "ACTIVE":
+        write_audit_log(
+            "LOGIN_FAILED",
+            request.username,
+            "/admin/auth/login"
+        )
+
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is inactive"
@@ -72,6 +93,12 @@ def admin_login(request: AdminLoginRequest):
         },
         os.getenv("JWT_SECRET_KEY"),
         algorithm="HS256"
+    )
+
+    write_audit_log(
+        "LOGIN_SUCCESS",
+        request.username,
+        "/admin/auth/login"
     )
 
     return {

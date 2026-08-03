@@ -11,6 +11,46 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db/01_create_users.sql:/docker-entrypoint-initdb.d/01_create_users.sql
+      - ./db/02_create_audit_logs.sql:/docker-entrypoint-initdb.d/02_create_audit_logs.sql
+      - ./db/03_enforce_single_admin.sql:/docker-entrypoint-initdb.d/03_enforce_single_admin.sql
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: technical-qa-api
+
+    env_file:
+      - .env
+
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    command: >
+      sh -c "
+      python -m db.init_admin &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000
+      "
 
 volumes:
   postgres_data:

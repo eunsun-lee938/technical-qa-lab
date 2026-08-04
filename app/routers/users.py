@@ -45,6 +45,7 @@ def get_users():
         for row in rows
     ]
 
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate):
     password_hash = bcrypt.hashpw(
@@ -62,18 +63,13 @@ def create_user(user: UserCreate):
                     role,
                     status
                 )
-                (
-                    user.username,
-                    password_hash,
-                    "USER",
-                    user.status,
-                )
+                VALUES (%s, %s, %s, %s)
                 RETURNING id, username, role, status, created_at;
                 """,
                 (
                     user.username,
                     password_hash,
-                    user.role,
+                    "USER",
                     user.status,
                 )
             )

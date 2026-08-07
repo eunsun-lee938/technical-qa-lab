@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.database import get_connection
 from typing import Literal
 from pydantic import BaseModel
+from psycopg.errors import UniqueViolation
 
 class UserCreate(BaseModel):
     username: str
@@ -53,28 +54,37 @@ def create_user(user: UserCreate):
         bcrypt.gensalt()
     ).decode("utf-8")
 
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO users (
-                    username,
-                    password_hash,
-                    role,
-                    status
-                )
-                VALUES (%s, %s, %s, %s)
-                RETURNING id, username, role, status, created_at;
-                """,
-                (
-                    user.username,
-                    password_hash,
-                    "USER",
-                    user.status,
-                )
-            )
 
-            row = cursor.fetchone()
+    try :
+
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO users (
+                        username,
+                        password_hash,
+                        role,
+                        status
+                    )
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id, username, role, status, created_at;
+                    """,
+                    (
+                        user.username,
+                        password_hash,
+                        "USER",
+                        user.status,
+                    )
+                )
+
+                row = cursor.fetchone()
+    except UniqueViolation:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username already exists"
+        )
+
 
     return {
         "id": row[0],
@@ -108,6 +118,7 @@ def update_user_status(user_id: int, update: UserStatusUpdate):
             status_code=404,
             detail="User not found"
         )
+
 
     return {
         "id": row[0],

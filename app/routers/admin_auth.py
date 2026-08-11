@@ -84,6 +84,7 @@ def admin_login(request: AdminLoginRequest):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is inactive"
         )
+    
 
     token = jwt.encode(
         {

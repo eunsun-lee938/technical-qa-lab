@@ -4,3 +4,6 @@ psycopg[binary]
 python-dotenv
 bcrypt
 PyJWT
+pytest
+requests
+pytest-html

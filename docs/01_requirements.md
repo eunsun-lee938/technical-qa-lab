@@ -45,8 +45,7 @@ ADMIN은 USER 계정 목록을 조회할 수 있다.
 ADMIN은 USER의 상태를 ACTIVE 또는 INACTIVE로 변경할 수 있다.
 
 ### REQ-USER-007
-일반 사용자 API를 통해 USER를 ADMIN으로 승격할 수 없어야 한다.
-
+일반 USER의 role을 ADMIN으로 변경하는 기능을 제공하지 않아야 한다.
 
 ## 3. Admin Management
 

@@ -597,10 +597,12 @@ Log Verification
 Defect / Regression
     ↓
 Automation
-```
 
 테스트 환경을 Docker Compose로 구성하고 PowerShell을 통해 초기 설정을 자동화하여,
 다른 PC에서도 동일한 API / DB 테스트 환경을 구성할 수 있도록 재현 가능한 구조로 설계했습니다.
+
+```
+
 ---
 
 ## 15. 프로젝트 완료 상태

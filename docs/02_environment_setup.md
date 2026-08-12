@@ -261,9 +261,26 @@ technical-qa-lab/
 ├─ docs/
 │  ├─ 00_project_plan.md
 │  ├─ 01_requirements.md
-│  └─ 02_environment_setup.md
+│  ├─ 02_environment_setup.md
+│  ├─ 03_test_coverage.md
+│  ├─ 04_automation_strategy.md
+│  └─ 05_defects.md
 │
 ├─ tests/
+│  ├─ data/
+│  │  └─ test_data.py
+│  ├─ helpers/
+│  │  ├─ db_helper.py
+│  │  └─ user_helper.py
+│  ├─ conftest.py
+│  ├─ test_user_auth.py
+│  ├─ test_admin_auth.py
+│  ├─ test_authorization.py
+│  └─ test_users.py
+│
+├─ reports/
+│  └─ full_test_report.html
+│
 ├─ Dockerfile
 ├─ docker-compose.yml
 ├─ requirements.txt
@@ -415,27 +432,10 @@ POST /admin/auth/login
 
 ---
 
-## 9. PC 신규 환경 검증 체크리스트
+## 9. PC 신규 환경 재현
 
-- [ ] Git Clone 성공
-- [ ] Clone 직후 `.env` 없음
-- [ ] `setup.ps1` 실행 성공
-- [ ] `.env` 자동 생성
-- [ ] PostgreSQL Container 실행
-- [ ] PostgreSQL Health Check 정상
-- [ ] FastAPI Container 실행
-- [ ] `users` Table 자동 생성
-- [ ] `audit_logs` Table 자동 생성
-- [ ] ADMIN 최대 1명 제약 생성
-- [ ] `admin01` 초기화
-- [ ] `/db-health` 응답 정상
-- [ ] Swagger 접속 가능
-- [ ] ADMIN 로그인 가능
-- [ ] ADMIN JWT 발급 가능
-
-모두 확인되면 다음 내용을 검증했다고 볼 수 있습니다.
-
-> Git Repository Clone 후 PowerShell 초기화 스크립트 실행만으로 Docker 기반 API/DB 테스트 환경을 재현할 수 있음.
+테스트 환경을 Docker Compose로 구성하고 PowerShell을 통해 초기 설정을 자동화하여,
+Git Repository를 Clone한 뒤 동일한 API / DB 테스트 환경을 구성할 수 있도록 재현 가능한 형태로 구성했습니다.
 
 ---
 
@@ -562,18 +562,17 @@ GitHub에는 구조만 설명하는 `.env.example`을 제공합니다.
 
 ### Audit Log
 
-- LOGIN_SUCCESS 기록
-- LOGIN_FAILED 기록
-- ACCESS_DENIED 기록
+- `LOGIN_SUCCESS` 기록
+- `LOGIN_FAILED` 기록
+- `ACCESS_DENIED` 기록
 - 실제 요청 Endpoint 기록
 
 ### DB 정책
 
-- username UNIQUE
-- role CHECK
-- status CHECK
+- `username` UNIQUE
+- `role` CHECK
+- `status` CHECK
 - 두 번째 ADMIN 생성 차단
-
 ---
 
 ## 14. QA 관점에서의 의미
@@ -600,25 +599,26 @@ Defect / Regression
 Automation
 ```
 
-테스트 환경을 Docker Compose로 구성하고 PowerShell을 통해 초기 설정을 자동화함으로써 다른 PC에서도 동일한 조건으로 테스트를 반복할 수 있도록 재현성을 확보했습니다.
-
+테스트 환경을 Docker Compose로 구성하고 PowerShell을 통해 초기 설정을 자동화하여,
+다른 PC에서도 동일한 API / DB 테스트 환경을 구성할 수 있도록 재현 가능한 구조로 설계했습니다.
 ---
 
-## 15. 다음 QA 단계
+## 15. 프로젝트 완료 상태
 
-환경 구축 완료 후 다음 순서로 진행합니다.
+테스트 환경 구축 이후 요구사항 기반 수동 검증과 핵심 회귀 자동화를 수행하였다.
 
-```text
-1. 요구사항 최종 정리
-2. 테스트 조건 도출
-3. Test Case 설계
-4. Postman 테스트 실행
-5. DB / Audit Log 교차검증
-6. 결함 기록
-7. Regression Test
-8. 핵심 시나리오 pytest 자동화
-9. 테스트 결과 정리
-10. README 최종 작성
-```
+현재 완료된 범위는 다음과 같다.
 
-환경 구축 자체는 여기서 기능 추가를 중단하고, 이후 작업은 QA 검증과 결과 정리에 집중합니다.
+1. 요구사항 정의 완료
+2. Manual Test Case 설계 및 수행 완료
+3. Postman 기반 API 정상 / 예외 / 권한 시나리오 검증 완료
+4. PostgreSQL 데이터 및 Constraint 검증 완료
+5. Audit Log 교차검증 완료
+6. BUG-001 결함 수정 확인 및 Regression 완료
+7. 핵심 시나리오 pytest 자동화 완료
+8. 전체 pytest Test Suite Full Regression 완료
+9. pytest-html 기반 HTML Test Report 생성 완료
+10. Coverage 및 프로젝트 결과 문서화 완료
+
+추가 기능 개발보다는 현재 정의된 요구사항을 기준으로
+테스트 설계, 검증 결과, 결함 및 Regression 산출물을 정리하는 것을 프로젝트의 최종 범위로 한다.

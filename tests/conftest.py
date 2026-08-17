@@ -1,14 +1,22 @@
 import os
+import uuid
+from datetime import datetime, timezone, timedelta
+
 import pytest
 import jwt
 import requests
-from datetime import datetime, timezone, timedelta
+
 from app.database import get_connection
 from tests.data.test_data import USERS
 from tests.helpers.db_helper import (
     get_user_status,
     update_user_status,
 )
+from tests.helpers.user_helper import (
+    create_user,
+    cleanup_user,
+)
+
 
 @pytest.fixture
 def base_url():
@@ -16,7 +24,7 @@ def base_url():
 
 
 @pytest.fixture
-def db_connection() :
+def db_connection():
     conn = get_connection()
 
     try:
@@ -26,8 +34,80 @@ def db_connection() :
 
 
 @pytest.fixture
-def inactive_user(db_connection):
-    username = USERS["default"]["username"]
+def admin_user():
+    username = os.getenv("ADMIN_USERNAME")
+    password = os.getenv("ADMIN_PASSWORD")
+
+    assert username is not None
+    assert password is not None
+
+    return {
+        "username": username,
+        "password": password,
+    }
+
+
+@pytest.fixture
+def admin_token(base_url, admin_user):
+    response = requests.post(
+        f"{base_url}/admin/auth/login",
+        json={
+            "username": admin_user["username"],
+            "password": admin_user["password"],
+        }
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert "access_token" in body
+    assert body["access_token"]
+
+    return body["access_token"]
+
+
+@pytest.fixture
+def default_user(
+    base_url,
+    db_connection,
+    admin_token,
+):
+    username = (
+        USERS["default"]["username_prefix"]
+        + uuid.uuid4().hex[:8]
+    )
+
+    password = USERS["default"]["password"]
+
+    create_user(
+        base_url,
+        db_connection,
+        admin_token,
+        username,
+        password,
+        "ACTIVE",
+    )
+
+    try:
+        yield {
+            "username": username,
+            "password": password,
+        }
+
+    finally:
+        cleanup_user(
+            db_connection,
+            username,
+        )
+
+
+@pytest.fixture
+def inactive_user(
+    db_connection,
+    default_user,
+):
+    username = default_user["username"]
 
     # 1. 테스트 실행 전 현재 상태 확인
     original_status = get_user_status(
@@ -54,8 +134,8 @@ def inactive_user(db_connection):
     assert current_status == "INACTIVE"
 
     try:
-        # 4. 테스트에 정상 계정 정보 전달
-        yield USERS["default"]
+        # 4. INACTIVE 테스트에 계정 정보 전달
+        yield default_user
 
     finally:
         # 5. fixture가 ACTIVE → INACTIVE로 바꿨을 때만 원복
@@ -74,21 +154,12 @@ def inactive_user(db_connection):
 
             assert restored_status == "ACTIVE"
 
-@pytest.fixture
-def admin_user():
-    username = os.getenv("ADMIN_USERNAME")
-    password = os.getenv("ADMIN_PASSWORD")
-
-    assert username is not None
-    assert password is not None
-
-    return {
-        "username": username,
-        "password": password,
-    }
 
 @pytest.fixture
-def expired_admin_token(db_connection, admin_user):
+def expired_admin_token(
+    db_connection,
+    admin_user,
+):
     with db_connection.cursor() as cursor:
         cursor.execute(
             """
@@ -115,22 +186,3 @@ def expired_admin_token(db_connection, admin_user):
     )
 
     return token
-
-@pytest.fixture
-def admin_token(base_url, admin_user):
-    response = requests.post(
-        f"{base_url}/admin/auth/login",
-        json={
-            "username": admin_user["username"],
-            "password": admin_user["password"],
-        }
-    )
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert "access_token" in body
-    assert body["access_token"]
-
-    return body["access_token"]

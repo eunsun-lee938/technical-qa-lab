@@ -1,11 +1,10 @@
 USERS = {
     "default" : {
-        "username" : "user02",
+        "username_prefix" : "qa_test_",
         "password" : "test1234",
     } ,
     "invalid" : {
-        "username" : "user02",
-        "password" : "wrong_password"
+        "password" : "wrong_password",
     },
     "create": {
         "username_prefix": "qa_auto_",

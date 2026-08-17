@@ -1,6 +1,5 @@
 import uuid
 
-from tests.data.test_data import USERS
 from tests.data.test_data import USERS, STATUSES
 
 from tests.helpers.user_helper import (
